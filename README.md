@@ -1,6 +1,6 @@
 A fully‑featured chess game built in Python, using a custom chess engine and a Pygame-based GUI. Supports all standard chess rules: legal move generation, pawn promotion, en passant, castling, check/checkmate detection, and move highlighting.
 
-🚀 Features
+--Features
 
 Custom Chess Engine: generates all possible moves, filters illegal ones (no moving into check), handles special moves.
 
@@ -10,7 +10,7 @@ Undo/Redo: press Z to undo the last move.
 
 Algebraic Notation: moves are recorded and can be exported in standard format.
 
-🐞 Challenges & Solutions
+--Challenges & Solutions
 
 1. Legal King Moves & Checks
 
@@ -36,8 +36,7 @@ Solution: Adjusted the logic that filtered valid moves so it no longer excluded 
 
 Outcome: Check moves are now visible, and a red highlight shows the king in check.
 
-
-🎓 Skills & Techniques Learned
+--Skills & Techniques Learned
 
 Backtracking & Move Simulation: Using make/undo paired calls and side-flipping to test move legality without side effects.
 
@@ -49,7 +48,7 @@ Pygame Basics: Board rendering, image loading, event handling, and surface highl
 
 Algebraic Notation: Converting coordinate moves into standard chess notation (including O-O/O-O-O, promotions, captures).
 
-👀 Future Improvements
+--Future Improvements
 
 AI opponent with minimax and alpha-beta pruning.
 
