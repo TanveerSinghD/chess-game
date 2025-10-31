@@ -1,62 +1,98 @@
-A fully‑featured chess game built in Python, using a custom chess engine and a Pygame-based GUI. Supports all standard chess rules: legal move generation, pawn promotion, en passant, castling, check/checkmate detection, and move highlighting.
+Chess Game with AI, Castling, Promotion, and Custom UI
+======================================================
 
---Features
+Overview
+--------
+This project is a complete chess game built in Python using the Pygame library. 
+It includes both Player vs Player and Player vs Computer modes with a clean, 
+interactive graphical interface, supporting all official chess rules.
 
-Custom Chess Engine: generates all possible moves, filters illegal ones (no moving into check), handles special moves.
+Features
+--------
+1. Game Modes
+   - Two Player Mode: Two players can play locally on the same device.
+   - Vs Computer Mode: Play against a computer opponent powered by a Minimax-based AI.
+   - AI Color Option: Choose whether the AI plays as White or Black. The board automatically 
+     rotates so the human player always plays from the bottom.
 
-Pygame GUI: interactive board with drag & click controls, highlights for selected squares, valid moves, and checks.
+2. Core Chess Mechanics
+   - Legal move validation: All moves are validated through rule checks ensuring 
+     no illegal moves are possible.
+   - Check, Checkmate, and Stalemate detection.
+   - Undo and Restart functionality.
+   - Key controls: 
+       Z → Undo
+       R → Restart
+       ESC → Return to Main Menu
 
-Undo/Redo: press Z to undo the last move.
+3. Special Moves
+   - Castling:
+     Supports both kingside and queenside castling.
+     Checks that the king and rook haven’t moved, there are no pieces between them,
+     and the king does not pass through or into check.
+     Includes a confirmation popup before finalizing the castle.
+   
+   - En Passant:
+     Automatically recognized when a pawn moves two squares forward and an opposing pawn 
+     can capture it on the next move.
+     The move is available for one turn only.
 
-Algebraic Notation: moves are recorded and can be exported in standard format.
+   - Promotion:
+     When a pawn reaches the opposite end of the board, a promotion overlay appears with 
+     options to promote to a Queen, Rook, Bishop, or Knight.
+     The Options Menu includes an Auto Promotion toggle allowing a default promotion choice.
 
---Challenges & Solutions
+4. User Interface
+   - Main Menu with hover effects:
+       Play vs Player
+       Play vs Computer
+       Options
+       Quit
+   - Options Menu:
+       - Set AI Color (White or Black)
+       - Set AI Search Depth (1–10)
+       - Enable/Disable Auto Promotion
+       - Choose default promotion piece (Q, R, B, N)
+   - Top Bar showing current mode, active player, and depth setting.
+   - Visual highlights for selected squares and legal moves.
+   - Board flips automatically depending on player color.
+   - Smooth overlays for promotion and castling confirmation.
 
-1. Legal King Moves & Checks
+5. Artificial Intelligence
+   - Uses a basic Minimax algorithm with adjustable search depth (1–10).
+   - Evaluates positions based on material balance and move potential.
+   - Higher depth values result in stronger but slower decision-making.
 
-Problem: The king was initially allowed to move into squares where it would be in check, and could also capture defended enemy pieces—even if doing so exposed it to attack.
+File Structure
+--------------
+chess/
+│
+├── ChessMain.py       - Handles the main menu, UI rendering, and game loop.
+├── ChessEngine.py     - Connects the UI to the board state logic.
+├── board.py           - Core chess logic: move generation, validation, and rules.
+├── move.py            - Move class defining notation, equality, and flags.
+├── ChessAI.py         - Minimax AI logic for computer opponent.
+└── pieces/            - Folder containing all chess piece PNG images.
 
-Solution: Implemented a move simulation inside get_valid_moves():
+How It Works
+------------
+1. The Board class manages chess rules, move generation, and legality checks.
+2. The ChessEngine acts as a bridge between the Board and GUI.
+3. The ChessMain script handles player input, rendering, and in-game logic.
+4. The ChessAI module runs Minimax recursion to determine the best move for the computer.
+5. Pygame updates the display at each frame with smooth transitions and visual feedback.
 
-Make the move on a copy of the board.
+Running the Game
+----------------
+1. Install required dependencies:
+   pip install pygame
 
-Temporarily flip back the side to move so that in_check() tests the mover’s king.
+2. Run the main game:
+   python ChessMain.py
 
-Only accept moves that leave the king out of check.
+3. Select your preferred mode and start playing.
 
-Undo the move cleanly.
-
-Outcome: After this fix, the king can no longer move into attacked squares, and capturing defended pieces is correctly blocked when it would expose the king. All legal checks and checkmates now register properly.
-
-2. Check Highlighting
-
-Problem: Checks on the enemy king (e.g., queen delivering check on h7) were not highlighted, and moves that gave check were filtered out.
-
-Solution: Adjusted the logic that filtered valid moves so it no longer excluded moves that put the opponent in check. Now in_check() always refers to the side whose legality is being tested.
-
-Outcome: Check moves are now visible, and a red highlight shows the king in check.
-
---Skills & Techniques Learned
-
-Backtracking & Move Simulation: Using make/undo paired calls and side-flipping to test move legality without side effects.
-
-State Logging: Implemented logs (moveLog, enPassantLog, castleRightsLog) to fully restore game state on undo.
-
-Deep Copy vs. Shallow: Learned when to use copy.deepcopy() (for nested rights), and when simple assignment suffices.
-
-Pygame Basics: Board rendering, image loading, event handling, and surface highlighting.
-
-Algebraic Notation: Converting coordinate moves into standard chess notation (including O-O/O-O-O, promotions, captures).
-
---Future Improvements
-
-AI opponent with minimax and alpha-beta pruning.
-
-PGN import/export.
-
-Online multiplayer.
-
-Mobile/touchscreen controls.
-
-This project has been a great exercise in algorithm design, object‑oriented programming, and real‑time graphical interfaces—combining rigorous rule enforcement with interactive visuals.
-
+Credits
+-------
+Developed in Python with Pygame.
+Implements all official chess rules with an interactive and user-friendly interface.
