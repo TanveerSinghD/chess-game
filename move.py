@@ -1,3 +1,4 @@
+# move.py
 class Move:
     ranks_to_rows = {"1": 7, "2": 6, "3": 5, "4": 4, "5": 3, "6": 2, "7": 1, "8": 0}
     rows_to_ranks = {v: k for k, v in ranks_to_rows.items()}
@@ -10,14 +11,17 @@ class Move:
         self.piece_moved = board[self.start_row][self.start_col]
         self.piece_captured = board[self.end_row][self.end_col]
 
+        # Special move flags
         self.is_en_passant = is_en_passant
         if self.is_en_passant:
             self.piece_captured = 'bp' if self.piece_moved == 'wp' else 'wp'
 
         self.is_pawn_promotion = (self.piece_moved[1] == 'p') and (self.end_row == 0 or self.end_row == 7)
+        self.promotion_choice = None  # 'Q','R','B','N'
+
         self.is_castle = is_castle
 
-        # Store move ID for hashing and equality
+        # Equality / hashing
         self.move_id = (self.start_row * 1000 + self.start_col * 100 + self.end_row * 10 + self.end_col)
 
     def get_chess_notation(self):
