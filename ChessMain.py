@@ -3,7 +3,10 @@ import pygame
 import os
 from ChessEngine import ChessEngine
 from move import Move
-from ChessAI import choose_ai_move  # ensure ChessAI.py exists with choose_ai_move(engine, depth)
+from ChessAI import choose_ai_move  # supports time_ms for per-move time cap
+
+# --------- Config ---------
+AI_MOVE_TIME_MS = 250  # ← AI thinking time per move in milliseconds (tweak here)
 
 # --------- Sizing (1.5× scale) ---------
 SCALE = 1.5
@@ -571,7 +574,8 @@ def main():
                 )
             )
             if is_ai_turn and not game_over and not (show_promotion or show_castle_confirm):
-                ai_move = choose_ai_move(engine, depth=ai_depth)
+                # ← NOW USING TIME CAP
+                ai_move = choose_ai_move(engine, depth=ai_depth, time_ms=AI_MOVE_TIME_MS)
                 if ai_move:
                     if getattr(ai_move, "is_pawn_promotion", False):
                         ai_move.promotion_choice = 'Q' if not auto_promotion_on else auto_promotion_piece
