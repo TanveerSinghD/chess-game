@@ -11,7 +11,15 @@ from move import Move
 from ChessAI import choose_ai_move  # supports time_ms for per-move time cap
 
 # --------- Config ---------
-AI_MOVE_TIME_MS = 250  # ← AI thinking time per move in milliseconds (tweak here)
+AI_MOVE_TIME_MS = 250  # ← base AI thinking time per move for shallow depths
+
+def depth_time_ms(depth: int) -> int:
+    """Adaptive time budget: give deeper searches more time so Elo lines up better."""
+    depth = max(1, depth)
+    if depth <= 3:
+        return AI_MOVE_TIME_MS
+    bonus = 200 * (depth - 3)
+    return min(1600, AI_MOVE_TIME_MS + bonus)  # up to ~1.6s at depth 10
 
 # --------- Sizing (1.5× scale) ---------
 SCALE = 1.5
@@ -33,7 +41,7 @@ THEME_PANEL = (32, 36, 44)
 
 def depth_to_elo(depth: int) -> int:
     """Rough mapping of depth to an approximate Elo-style number (lowered)."""
-    table = [300, 600, 900, 1200, 1500, 1800, 2000, 2200, 2300, 2400]
+    table = [300, 400, 700, 1000, 1300, 1600, 1800, 2000, 2100, 2200]
     depth = max(1, min(10, depth))
     return table[depth - 1]
 
@@ -96,22 +104,6 @@ class PromotionOverlay:
         self.visible = False
         self.move = None
         self.rects.clear()
-        self.alpha = 0
-
-
-@dataclass
-class CastleOverlay:
-    visible: bool = False
-    move: Optional[Move] = None
-    yes_rect: Optional[pygame.Rect] = None
-    no_rect: Optional[pygame.Rect] = None
-    alpha: int = 0
-
-    def clear(self) -> None:
-        self.visible = False
-        self.move = None
-        self.yes_rect = None
-        self.no_rect = None
         self.alpha = 0
 
 # ---------------- Assets ----------------
@@ -253,47 +245,6 @@ def draw_promotion_overlay(screen, move, images, alpha):
 
     return rects
 
-def draw_castle_overlay(screen, alpha):
-    """Centered Yes/No popup for castling. Returns (yes_rect, no_rect)."""
-    dim = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-    dim.fill((0, 0, 0, alpha))
-    screen.blit(dim, (0, 0))
-
-    panel_w = int(SQ_SIZE * 4.5)
-    panel_h = int(SQ_SIZE * 1.5)
-    panel_x = (WIDTH - panel_w) // 2
-    panel_y = (HEIGHT - panel_h) // 2
-
-    panel = pygame.Surface((panel_w, panel_h))
-    panel.fill((40, 40, 40))
-    pygame.draw.rect(panel, (80, 80, 80), panel.get_rect(), width=2, border_radius=12)
-    screen.blit(panel, (panel_x, panel_y))
-
-    font = pygame.font.SysFont("Helvetica", int(20 * SCALE), True)
-    msg = "Castle with this rook?"
-    label = font.render(msg, True, (230, 230, 230))
-    screen.blit(label, label.get_rect(center=(WIDTH // 2, panel_y + int(0.4 * panel_h))))
-
-    btn_w = int(100 * SCALE)
-    btn_h = int(40 * SCALE)
-    gap = int(20 * SCALE)
-    yes_rect = pygame.Rect(WIDTH // 2 - btn_w - gap // 2, panel_y + int(0.8 * panel_h), btn_w, btn_h)
-    no_rect  = pygame.Rect(WIDTH // 2 + gap // 2,       panel_y + int(0.8 * panel_h), btn_w, btn_h)
-
-    def draw_btn(rect, text):
-        mx, my = pygame.mouse.get_pos()
-        hover = rect.collidepoint(mx, my)
-        bg = (70, 120, 70) if text == "Yes" else (120, 70, 70)
-        base = (50, 50, 50)
-        color = bg if hover else base
-        pygame.draw.rect(screen, color, rect, border_radius=10)
-        t = font.render(text, True, (240, 240, 240))
-        screen.blit(t, t.get_rect(center=rect.center))
-
-    draw_btn(yes_rect, "Yes")
-    draw_btn(no_rect,  "No")
-    return yes_rect, no_rect
-
 # ---------------- Scenes ----------------
 SCENE_MENU = "menu"
 SCENE_OPTIONS = "options"
@@ -333,8 +284,6 @@ def main():
     game_over = False
 
     promotion = PromotionOverlay()
-    castle = CastleOverlay()
-
     menu_buttons: List[Button] = []
     options_buttons: List[Button] = []
 
@@ -445,7 +394,6 @@ def main():
         move_made = False
         game_over = False
         promotion.clear()
-        castle.clear()
         scene = SCENE_GAME
 
     # ------------ Main Loop ------------
@@ -506,19 +454,6 @@ def main():
                                 break
                     continue  # block rest
 
-                # Castle confirmation blocks all other inputs
-                if castle.visible:
-                    if e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
-                        mx, my = e.pos
-                        if castle.yes_rect and castle.yes_rect.collidepoint(mx, my):
-                            if castle.move:
-                                engine.make_move(castle.move)
-                            move_made = True
-                            castle.clear()
-                        elif castle.no_rect and castle.no_rect.collidepoint(mx, my):
-                            castle.clear()
-                    continue  # block rest
-
                 # Normal game controls
                 if e.type == pygame.KEYDOWN:
                     if e.key == pygame.K_ESCAPE:
@@ -565,9 +500,8 @@ def main():
 
                                     # Handle CASTLING for human
                                     if getattr(valid_move, "is_castle", False):
-                                        castle.visible = True
-                                        castle.move = valid_move
-                                        castle.alpha = 0
+                                        engine.make_move(valid_move)
+                                        move_made = True
                                         selected_sq = ()
                                         player_clicks = []
                                         move_found = True
@@ -622,9 +556,10 @@ def main():
                     (not engine.get_game_state().white_to_move and not ai_plays_white)
                 )
             )
-            if is_ai_turn and not game_over and not (promotion.visible or castle.visible):
-                # ← NOW USING TIME CAP
-                ai_move = choose_ai_move(engine, depth=ai_depth, time_ms=AI_MOVE_TIME_MS)
+            if is_ai_turn and not game_over and not promotion.visible:
+                # Adaptive time cap gets smaller at higher depths to keep moves quick
+                budget_ms = depth_time_ms(ai_depth)
+                ai_move = choose_ai_move(engine, depth=ai_depth, time_ms=budget_ms)
                 if ai_move:
                     if getattr(ai_move, "is_pawn_promotion", False):
                         ai_move.promotion_choice = 'Q' if not auto_promotion_on else auto_promotion_piece
@@ -657,11 +592,6 @@ def main():
             if promotion.visible and promotion.move:
                 promotion.alpha = min(180, promotion.alpha + 10)
                 promotion.rects = draw_promotion_overlay(screen, promotion.move, IMAGES, promotion.alpha)
-
-            # Castle confirmation overlay (fade)
-            if castle.visible and castle.move:
-                castle.alpha = min(180, castle.alpha + 10)
-                castle.yes_rect, castle.no_rect = draw_castle_overlay(screen, castle.alpha)
 
         pygame.display.flip()
         clock.tick(MAX_FPS)
