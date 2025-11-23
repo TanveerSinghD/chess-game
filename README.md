@@ -14,7 +14,7 @@ A lightweight Python chess game with a built‑in engine and optional computer o
 - `chess/pieces/` — piece images.
 
 ## Running the game
-From the project root (`/Users/tanveersd/Desktop/Projects/chess`):
+From the project root:
 ```bash
 # Option A: use the existing virtualenv
 source .venv/bin/activate
